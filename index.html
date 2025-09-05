@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://ad.gigapub.tech/script?id=2655"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Auto MoneTag Ads Reward System</title>
+  <style>
+    body { margin:0; padding:0; background:#000; color:#fff; font-family:Arial,sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
+    .container { text-align:center; background:#1a1a1a; padding:20px; border-radius:10px; box-shadow:0 4px 15px rgba(255,215,0,0.3); width:320px; border:1px solid #333; }
+    h1 { font-size:20px; color:#FFD700; margin-bottom:10px; text-shadow:0 0 5px rgba(255,215,0,0.5); }
+    .developer { font-size:12px; background:#4CAF50; padding:5px 10px; border-radius:5px; margin-bottom:15px; display:inline-block; color:#fff; }
+    .stats p { margin:5px 0; font-size:14px; color:#FFD700; }
+    .progress-circle { width:80px; height:80px; border:4px solid #FFD700; border-radius:50%; display:flex; justify-content:center; align-items:center; margin:10px auto; }
+    .progress-circle span { font-size:18px; font-weight:bold; color:#FFD700; }
+    .buttons button { width:90%; margin:5px 0; padding:10px; font-size:14px; border:none; border-radius:5px; font-weight:bold; cursor:pointer; transition:.3s; }
+    #watch-ad-btn { background:#FFD700; }
+    #auto-ad-btn { background:#4CAF50; color:#fff; }
+    #stop-auto-btn { background:#FF6347; color:#fff; }
+    .buttons button:nth-child(4){ background:linear-gradient(45deg,#FFD700,#4CAF50); color:#fff; }
+    .buttons button:hover { transform:translateY(-3px); box-shadow:0 5px 15px rgba(255,215,0,0.4); }
+    .withdraw-section { margin-top:20px; display:none; padding:15px; background:#1a1a1a; border-radius:10px; border:1px solid #333; }
+    .withdraw-section h3{color:#FFD700;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Auto MoneTag Ads</h1>
+    <div class="developer">Developer by Pulse Book</div>
+
+    <div class="user-info">
+      <p>Welcome, <span id="user-name"></span></p>
+    </div>
+
+    <div class="stats">
+      <p>Watched Ads: <span id="watched-ads">0</span></p>
+      <p>Earned Points: <span id="earned-points">0.00</span></p>
+    </div>
+
+    <div class="progress-circle">
+      <span id="ads-progress">0%</span>
+    </div>
+
+    <div class="buttons">
+      <button id="watch-ad-btn" onclick="watchAd()">Watch Ad</button>
+      <button id="auto-ad-btn" onclick="startAutoAds()">Auto Show Ads</button>
+      <button id="stop-auto-btn" onclick="stopAutoAds()" disabled>Stop Auto Ads</button>
+      <button onclick="showWithdrawForm()">Withdrawal Request</button>
+    </div>
+
+    <div id="withdraw-section" class="withdraw-section">
+      <h3>Withdrawal</h3>
+      <input type="number" id="withdraw-amount" placeholder="Enter points" min="5">
+      <select id="payment-method">
+        <option value="Bkash">Bkash</option>
+        <option value="Nagad">Nagad</option>
+        <option value="Manual">Manual Withdraw</option>
+      </select>
+      <input type="text" id="withdraw-phone" placeholder="Enter phone number">
+      <button onclick="withdrawPoints()">Withdraw</button>
+      <p id="withdraw-status"></p>
+    </div>
+  </div>
+
+  <script>
+    const MIN_WITHDRAW_POINTS = 5;
+    const ADMIN_USER_ID = "5629770869";
+    const BOT_TOKEN = "xxxx"; // এখানে নিজের Bot Token দাও
+
+    let watchedAdsCount = 0;
+    let earnedPoints = 0.00;
+    let autoAdInterval;
+
+    const telegramUserName = "@exampleUser";
+    document.getElementById("user-name").textContent = telegramUserName;
+
+    if(localStorage.getItem("watchedAdsCount")){
+      watchedAdsCount = parseInt(localStorage.getItem("watchedAdsCount"));
+      earnedPoints = parseFloat(localStorage.getItem("earnedPoints"));
+      updateStats(); updateProgressCircle();
+    }
+
+    // ✅ Gigapub Ads Integration
+    function watchAd(){
+      if(typeof showGiga === "function"){
+        showGiga().then(()=>{
+          watchedAdsCount++;
+          earnedPoints += 0.10;
+          updateStats(); updateProgressCircle();
+        }).catch(e=>console.error("Ad Error:", e));
+      } else {
+        alert("Ad SDK not loaded yet!");
+      }
+    }
+
+    function startAutoAds(){
+      autoAdInterval = setInterval(watchAd, 6000);
+      document.getElementById("auto-ad-btn").disabled = true;
+      document.getElementById("stop-auto-btn").disabled = false;
+    }
+    function stopAutoAds(){
+      clearInterval(autoAdInterval);
+      document.getElementById("auto-ad-btn").disabled = false;
+      document.getElementById("stop-auto-btn").disabled = true;
+    }
+
+    function showWithdrawForm(){
+      document.getElementById("withdraw-section").style.display = "block";
+    }
+
+    function withdrawPoints(){
+      const amount = parseFloat(document.getElementById("withdraw-amount").value);
+      const method = document.getElementById("payment-method").value;
+      const phone = document.getElementById("withdraw-phone").value;
+
+      if(amount < MIN_WITHDRAW_POINTS){
+        document.getElementById("withdraw-status").textContent = `Minimum ${MIN_WITHDRAW_POINTS} points required.`;
+        return;
+      }
+      if(amount > earnedPoints){
+        document.getElementById("withdraw-status").textContent = `Insufficient balance. You have ${earnedPoints.toFixed(2)} points.`;
+        return;
+      }
+
+      earnedPoints -= amount;
+      updateStats();
+
+      const msg = `🟡 Withdraw Request 🟡\\n👤 User: ${telegramUserName}\\n💰 Points: ${amount}\\n📱 Method: ${method}\\n📞 Number: ${phone}\\n🕒 Time: ${new Date().toLocaleString()}`;
+      sendTelegram(msg);
+
+      document.getElementById("withdraw-status").textContent = "✅ Request Sent!";
+    }
+
+    function updateStats(){
+      document.getElementById("watched-ads").textContent = watchedAdsCount;
+      document.getElementById("earned-points").textContent = earnedPoints.toFixed(2);
+      localStorage.setItem("watchedAdsCount", watchedAdsCount);
+      localStorage.setItem("earnedPoints", earnedPoints.toFixed(2));
+    }
+    function updateProgressCircle(){
+      const percentage = Math.min((watchedAdsCount/10)*100,100);
+      document.getElementById("ads-progress").textContent = Math.floor(percentage)+"%";
+    }
+
+    function sendTelegram(msg){
+      if(!BOT_TOKEN || !ADMIN_USER_ID) return;
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ chat_id:ADMIN_USER_ID, text:msg })
+      }).then(r=>r.json()).then(d=>console.log("TG:",d)).catch(e=>console.error("TG Error:",e));
+    }
+  </script>
+</body>
+</html>
